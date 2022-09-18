@@ -83,7 +83,8 @@ class Module
 		
 		/* Add routes */
 		$app->addEntity(\App\Bus\AppBus::class);
-		$app->addEntity(\App\Console\AdminCommand::class);
+		$app->addEntity(\App\Console\SSLGenerateCommand::class);
+		$app->addEntity(\App\Console\SSLUpdateCommand::class);
 	}
 	
 	

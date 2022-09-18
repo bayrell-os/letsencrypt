@@ -38,7 +38,7 @@ use Illuminate\Database\Capsule\Manager as DB;
 use TinyPHP\Utils;
 
 
-class AdminCommand extends Command
+class SSLGenerateCommand extends Command
 {
 	protected static $defaultName = 'ssl:generate';
 

@@ -33,22 +33,13 @@ class SSL
 {
 	
 	/**
-	 * Returns letsencrypt path
+	 * Get group id by name
 	 */
-	static function get_letsencrypt_path($group_name)
+	static function get_group_id_by_name($group_name)
 	{
-		return "/data/letsencrypt/live/" . $group_name;
+		if (substr($group_name, 0, 3) != "grp") return "";
+		return substr($group_name, 3);
 	}
-	
-	
-	
-	/**
-     * Returns letsencrypt save path
-     */
-    static function get_letsencrypt_save_path()
-    {
-        return "/data/letsencrypt/save/" . $group_name;
-    }
 	
 	
 	
@@ -69,7 +60,7 @@ class SSL
 			]
 		);
 		
-		// $res->debug();
+		$res->debug();
 		
 		if (!$res->isSuccess())
 		{
@@ -80,6 +71,7 @@ class SSL
 		$domains = $res->result["domains"];
 		if (count($domains) == 0)
 		{
+			throw new \Exception("Domains is empty");
 			return false;
 		}
 		
@@ -112,11 +104,142 @@ class SSL
 	
 	
 	/**
+	 * Returns true if file is different
+	 */
+	static function file_is_different($file1, $file2)
+	{
+		if (!file_exists($file1)) return true;
+		if (!file_exists($file2)) return true;
+		
+		$file1_content = @file_get_contents($file1);
+		$file2_content = @file_get_contents($file2);
+		
+		return $file1_content != $file2_content;
+	}
+	
+	
+	
+	/**
+	 * Copy file
+	 */
+	static function copy_file($src, $dest)
+	{
+		$content = @file_get_contents($src);
+		@file_put_contents($dest, $content);
+	}
+	
+	
+	
+	/**
+	 * Returns true if ssl certificate is different
+	 */
+	static function check_ssl_is_different($group_name)
+	{
+		$live_path = "/data/letsencrypt/live/" . $group_name;
+		$save_path = "/data/letsencrypt/save/" . $group_name;
+		
+		$live_private_key = $live_path . "/privkey.pem";
+		$live_puplic_key = $live_path . "/fullchain.pem";
+		
+		$save_private_key = $save_path . "/privkey.pem";
+		$save_puplic_key = $save_path . "/fullchain.pem";
+		
+		if (static::file_is_different($live_private_key, $save_private_key)) return true;
+		if (static::file_is_different($live_puplic_key, $save_puplic_key)) return true;
+		
+		return false;
+	}
+	
+	
+	
+	/**
+	 * Save ssl certificate
+	 */
+	static function save_ssl_certificate($group_name)
+	{
+		$live_path = "/data/letsencrypt/live/" . $group_name;
+		$save_path = "/data/letsencrypt/save/" . $group_name;
+		
+		$live_private_key = $live_path . "/privkey.pem";
+		$live_puplic_key = $live_path . "/fullchain.pem";
+		
+		$save_private_key = $save_path . "/privkey.pem";
+		$save_puplic_key = $save_path . "/fullchain.pem";
+		
+		if (!file_exists($save_path))
+		{
+			mkdir($save_path, 0775, true);
+		}
+		
+		static::copy_file($live_private_key, $save_private_key);
+		static::copy_file($live_puplic_key, $save_puplic_key);
+	}
+	
+	
+	
+	/**
 	 * Update ssl certificates
 	 */
 	static function update_ssl_certificates()
 	{
+		if (!file_exists("/data/letsencrypt/live/"))
+		{
+			return false;
+		}
 		
+		/* Get groups */
+		$groups = @scandir("/data/letsencrypt/live/");
+		
+		/* Filter groups */
+		$groups = array_filter($groups, function($group_name){
+			if (in_array($group_name, [".", ".."])) return false;
+			if (substr($group_name, 0, 3) != "grp") return false;
+			return true;
+		});
+		
+		/* Update ssl certificates */
+		foreach ($groups as $group_name)
+		{
+			$is_different = static::check_ssl_is_different($group_name);
+			if ($is_different)
+			{
+				$group_id = static::get_group_id_by_name($group_name);
+				if ($group_id)
+				{
+					echo "grp" . $group_id . "\n";
+					
+					$live_path = "/data/letsencrypt/live/" . $group_name;
+					$live_private_key = $live_path . "/privkey.pem";
+					$live_puplic_key = $live_path . "/fullchain.pem";
+					
+					$private_key = @file_get_contents($live_private_key);
+					$public_key = @file_get_contents($live_puplic_key);
+					
+					$res = \TinyPHP\Bus::call
+					(
+						"/cloud_os/ssl/update_group/",
+						[
+							"group_id" => $group_id,
+							"private_key" => $private_key,
+							"public_key" => $public_key,
+						]
+					);
+					
+					$res->debug();
+					
+					if ($res->isSuccess())
+					{
+						static::save_ssl_certificate($group_name);
+					}
+					else
+					{
+						echo "Error: " . $res->error_str . "\n";
+					}
+				}
+			}
+		}
+		
+		return true;
 	}
 	
 	
@@ -126,7 +249,7 @@ class SSL
 	 */
 	static function fake_generate_certificate($group_name, $domains)
 	{
-		$path = static::get_letsencrypt_path($group_name);
+		$path = "/data/letsencrypt/live/" . $group_name;
 		
 		if (!file_exists($path))
 		{
