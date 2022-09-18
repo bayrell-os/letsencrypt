@@ -177,13 +177,13 @@ class SSL
 	 */
 	static function update_ssl_certificates()
 	{
-		if (!file_exists("/data/letsencrypt/live/"))
+		if (!file_exists("/data/letsencrypt/live"))
 		{
 			return false;
 		}
 		
 		/* Get groups */
-		$groups = @scandir("/data/letsencrypt/live/");
+		$groups = @scandir("/data/letsencrypt/live");
 		
 		/* Filter groups */
 		$groups = array_filter($groups, function($group_id){

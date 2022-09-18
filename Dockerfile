@@ -14,5 +14,5 @@ RUN cd ~; \
 	rm -f /root/run.d/10-cron.enable.sh; \
 	ln -s /data/letsencrypt /etc/letsencrypt; \
 	mkdir -p /var/www/letsencrypt/.well-known; \
-	chmod +x /root/run.sh; \
+	chmod +x /root/*.sh; \
 	echo "Ok"
