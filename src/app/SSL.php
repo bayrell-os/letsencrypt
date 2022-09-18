@@ -33,24 +33,12 @@ class SSL
 {
 	
 	/**
-	 * Get group id by name
-	 */
-	static function get_group_id_by_name($group_name)
-	{
-		if (substr($group_name, 0, 3) != "grp") return "";
-		return substr($group_name, 3);
-	}
-	
-	
-	
-	/**
 	 * Generate ssl group certificate
 	 */
 	static function generate_ssl_group_certificate($group_id)
 	{
 		$email = env("EMAIL");
 		$is_fake = env("GENERATE_FAKE_CERTIFICATE");
-		$group_name = "grp" . $group_id;
 		
 		$res = \TinyPHP\Bus::call
 		(
@@ -68,6 +56,13 @@ class SSL
 			return false;
 		}
 		
+		$container_name = $res->result["group"]["container_name"];
+		if ($container_name != env("DOCKER_SERVICE_NAME"))
+		{
+			throw new \Exception("Container is not allowed for this group");
+			return false;
+		}
+		
 		$domains = $res->result["domains"];
 		if (count($domains) == 0)
 		{
@@ -78,7 +73,7 @@ class SSL
 		/* Generate ssl certificate for current group */
 		if ($is_fake == "1")
 		{
-			static::fake_generate_certificate($group_name, $domains);
+			static::fake_generate_certificate($group_id, $domains);
 		}
 		else
 		{
@@ -87,7 +82,7 @@ class SSL
 			
 			/* Certbot command */
 			$cmd = "certbot certonly --non-interactive --agree-tos --email " . $email .
-				" --cert-name " . $group_name .
+				" --cert-name " . $group_id .
 				" --webroot --webroot-path=/var/www/letsencrypt" .
 				" -d " . $domains;
 			
@@ -133,10 +128,10 @@ class SSL
 	/**
 	 * Returns true if ssl certificate is different
 	 */
-	static function check_ssl_is_different($group_name)
+	static function check_ssl_is_different($group_id)
 	{
-		$live_path = "/data/letsencrypt/live/" . $group_name;
-		$save_path = "/data/letsencrypt/save/" . $group_name;
+		$live_path = "/data/letsencrypt/live/" . $group_id;
+		$save_path = "/data/letsencrypt/save/" . $group_id;
 		
 		$live_private_key = $live_path . "/privkey.pem";
 		$live_puplic_key = $live_path . "/fullchain.pem";
@@ -155,10 +150,10 @@ class SSL
 	/**
 	 * Save ssl certificate
 	 */
-	static function save_ssl_certificate($group_name)
+	static function save_ssl_certificate($group_id)
 	{
-		$live_path = "/data/letsencrypt/live/" . $group_name;
-		$save_path = "/data/letsencrypt/save/" . $group_name;
+		$live_path = "/data/letsencrypt/live/" . $group_id;
+		$save_path = "/data/letsencrypt/save/" . $group_id;
 		
 		$live_private_key = $live_path . "/privkey.pem";
 		$live_puplic_key = $live_path . "/fullchain.pem";
@@ -191,50 +186,45 @@ class SSL
 		$groups = @scandir("/data/letsencrypt/live/");
 		
 		/* Filter groups */
-		$groups = array_filter($groups, function($group_name){
-			if (in_array($group_name, [".", ".."])) return false;
-			if (substr($group_name, 0, 3) != "grp") return false;
+		$groups = array_filter($groups, function($group_id){
+			if (in_array($group_id, [".", ".."])) return false;
 			return true;
 		});
 		
 		/* Update ssl certificates */
-		foreach ($groups as $group_name)
+		foreach ($groups as $group_id)
 		{
-			$is_different = static::check_ssl_is_different($group_name);
-			if ($is_different)
+			$is_different = static::check_ssl_is_different($group_id);
+			if ($is_different && $group_id)
 			{
-				$group_id = static::get_group_id_by_name($group_name);
-				if ($group_id)
+				echo "Group " . $group_id . "\n";
+				
+				$live_path = "/data/letsencrypt/live/" . $group_id;
+				$live_private_key = $live_path . "/privkey.pem";
+				$live_puplic_key = $live_path . "/fullchain.pem";
+				
+				$private_key = @file_get_contents($live_private_key);
+				$public_key = @file_get_contents($live_puplic_key);
+				
+				$res = \TinyPHP\Bus::call
+				(
+					"/cloud_os/ssl/update_group/",
+					[
+						"group_id" => $group_id,
+						"private_key" => $private_key,
+						"public_key" => $public_key,
+					]
+				);
+				
+				$res->debug();
+				
+				if ($res->isSuccess())
 				{
-					echo "grp" . $group_id . "\n";
-					
-					$live_path = "/data/letsencrypt/live/" . $group_name;
-					$live_private_key = $live_path . "/privkey.pem";
-					$live_puplic_key = $live_path . "/fullchain.pem";
-					
-					$private_key = @file_get_contents($live_private_key);
-					$public_key = @file_get_contents($live_puplic_key);
-					
-					$res = \TinyPHP\Bus::call
-					(
-						"/cloud_os/ssl/update_group/",
-						[
-							"group_id" => $group_id,
-							"private_key" => $private_key,
-							"public_key" => $public_key,
-						]
-					);
-					
-					$res->debug();
-					
-					if ($res->isSuccess())
-					{
-						static::save_ssl_certificate($group_name);
-					}
-					else
-					{
-						echo "Error: " . $res->error_str . "\n";
-					}
+					static::save_ssl_certificate($group_id);
+				}
+				else
+				{
+					echo "Error: " . $res->error_str . "\n";
 				}
 			}
 		}
@@ -247,9 +237,9 @@ class SSL
 	/**
 	 * Fake generate certifiate
 	 */
-	static function fake_generate_certificate($group_name, $domains)
+	static function fake_generate_certificate($group_id, $domains)
 	{
-		$path = "/data/letsencrypt/live/" . $group_name;
+		$path = "/data/letsencrypt/live/" . $group_id;
 		
 		if (!file_exists($path))
 		{
