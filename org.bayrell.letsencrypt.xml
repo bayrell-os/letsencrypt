@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<template>
+	<uid>org.bayrell.letsencrypt</uid>
+	<name>Let’s Encrypt for Cloud OS</name>
+	<version>0.4.3</version>
+	<maintainer>Ildar &lt;ildar@bayrell.org&gt;</maintainer>
+	<marketplace>https://cloud.bayrell.org/</marketplace>
+	<date>2022-05-16T20:24:00+06:00</date>
+	<arch>amd64</arch>
+	<arch>arm64v8</arch>
+	<link name="Docker hub">https://hub.docker.com/r/bayrell/letsencrypt</link>
+	<link name="Github">https://github.com/bayrell-os/letsencrypt</link>
+	<xml name="bayrell.org" priority="10">https://cloud.bayrell.org/marketplace/org.bayrell.letsencrypt.xml</xml>
+	<xml name="github.com" priority="20">https://raw.githubusercontent.com/bayrell-os/letsencrypt/main/org.bayrell.letsencrypt.xml</xml>
+	<yaml>
+		<services>
+			<_var_app_name_>
+				<image>docker.io/bayrell/letsencrypt:0.4.2</image>
+				<hostname>{{.Service.Name}}.{{.Task.ID}}.local</hostname>
+				<volumes>_var_app_name_:/data</volumes>
+				<environment>
+					<EMAIL>_var_letsencrypt_email_</EMAIL>
+				</environment>
+			</_var_app_name_>
+		</services>
+	<volumes>
+		<_var_app_name_ />
+	</volumes>
+	</yaml>
+	<variables>
+		<variable>
+			<name>_var_app_name_</name>
+			<label>App name</label>
+			<type>string</type>
+		</variable>
+		<variable>
+			<name>_var_letsencrypt_email_</name>
+			<label>Email for Let’s Encrypt</label>
+			<type>string</type>
+		</variable>
+	</variables>
+	<modificators>
+		<li>org.bayrell.modificator.cloud_os</li>
+		<li>org.bayrell.modificator.deploy_hostname</li>
+	</modificators>
+	<patch>
+		<name>Template patch</name>
+		<operations>
+		</operations>
+	</patch>
+</template>
