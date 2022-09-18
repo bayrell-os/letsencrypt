@@ -82,7 +82,7 @@ class SSL
 			
 			/* Certbot command */
 			$cmd = "certbot certonly --non-interactive --agree-tos --email " . $email .
-				" --cert-name " . $group_id .
+				" --cert-name grp" . $group_id .
 				" --webroot --webroot-path=/var/www/letsencrypt" .
 				" -d " . $domains;
 			
@@ -130,8 +130,8 @@ class SSL
 	 */
 	static function check_ssl_is_different($group_id)
 	{
-		$live_path = "/data/letsencrypt/live/" . $group_id;
-		$save_path = "/data/letsencrypt/save/" . $group_id;
+		$live_path = "/data/letsencrypt/etc/live/grp" . $group_id;
+		$save_path = "/data/letsencrypt/etc/live.save/grp" . $group_id;
 		
 		$live_private_key = $live_path . "/privkey.pem";
 		$live_puplic_key = $live_path . "/fullchain.pem";
@@ -152,8 +152,8 @@ class SSL
 	 */
 	static function save_ssl_certificate($group_id)
 	{
-		$live_path = "/data/letsencrypt/live/" . $group_id;
-		$save_path = "/data/letsencrypt/save/" . $group_id;
+		$live_path = "/data/letsencrypt/etc/live/grp" . $group_id;
+		$save_path = "/data/letsencrypt/etc/live.save/grp" . $group_id;
 		
 		$live_private_key = $live_path . "/privkey.pem";
 		$live_puplic_key = $live_path . "/fullchain.pem";
@@ -177,29 +177,32 @@ class SSL
 	 */
 	static function update_ssl_certificates()
 	{
-		if (!file_exists("/data/letsencrypt/live"))
+		if (!file_exists("/data/letsencrypt/etc/live"))
 		{
 			return false;
 		}
 		
 		/* Get groups */
-		$groups = @scandir("/data/letsencrypt/live");
+		$groups = @scandir("/data/letsencrypt/etc/live");
 		
 		/* Filter groups */
-		$groups = array_filter($groups, function($group_id){
-			if (in_array($group_id, [".", ".."])) return false;
+		$groups = array_filter($groups, function($group_name){
+			if (in_array($group_name, [".", ".."])) return false;
+			if (substr($group_name, 0, 3) != "grp") return false;
 			return true;
 		});
 		
 		/* Update ssl certificates */
-		foreach ($groups as $group_id)
+		foreach ($groups as $group_name)
 		{
+			$group_id = substr($group_name, 3);
+			
 			$is_different = static::check_ssl_is_different($group_id);
 			if ($is_different && $group_id)
 			{
 				echo "Group " . $group_id . "\n";
 				
-				$live_path = "/data/letsencrypt/live/" . $group_id;
+				$live_path = "/data/letsencrypt/etc/live/grp" . $group_id;
 				$live_private_key = $live_path . "/privkey.pem";
 				$live_puplic_key = $live_path . "/fullchain.pem";
 				
@@ -239,7 +242,7 @@ class SSL
 	 */
 	static function fake_generate_certificate($group_id, $domains)
 	{
-		$path = "/data/letsencrypt/live/" . $group_id;
+		$path = "/data/letsencrypt/etc/live/grp" . $group_id;
 		
 		if (!file_exists($path))
 		{

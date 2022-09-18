@@ -12,7 +12,10 @@ ADD src /var/www/html
 
 RUN cd ~; \
 	rm -f /root/run.d/10-cron.enable.sh; \
-	ln -s /data/letsencrypt /etc/letsencrypt; \
+	rm -f /etc/supervisor.d/php-fpm.ini; \
+	ln -s /data/letsencrypt/etc /etc/letsencrypt; \
+	ln -s /data/letsencrypt/lib /var/lib/letsencrypt; \
+	ln -s /data/letsencrypt/log /var/log/letsencrypt; \
 	mkdir -p /var/www/letsencrypt/.well-known; \
 	chmod +x /root/*.sh; \
 	echo "Ok"
