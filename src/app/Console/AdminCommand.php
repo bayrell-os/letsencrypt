@@ -30,6 +30,7 @@ namespace App\Console;
 
 use App\Docker;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -37,9 +38,9 @@ use Illuminate\Database\Capsule\Manager as DB;
 use TinyPHP\Utils;
 
 
-class AdminUpdate extends Command
+class AdminCommand extends Command
 {
-	protected static $defaultName = 'generate';
+	protected static $defaultName = 'ssl:generate';
 
 	protected function configure(): void
 	{
@@ -53,7 +54,8 @@ class AdminUpdate extends Command
 	protected function execute(InputInterface $input, OutputInterface $output): int
 	{
 		
-		
+		$group_id = $input->getArgument('group_id');
+		\App\SSL::generate_ssl_group_certificate($group_id);
 		
 		return Command::SUCCESS;
 	}

@@ -82,7 +82,8 @@ class Module
 		$app = app();
 		
 		/* Add routes */
-		$app->addEntity(\App\Bus\AppBus::class);		
+		$app->addEntity(\App\Bus\AppBus::class);
+		$app->addEntity(\App\Console\AdminCommand::class);
 	}
 	
 	
