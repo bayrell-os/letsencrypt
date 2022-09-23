@@ -11,6 +11,8 @@ COPY files /
 ADD src /var/www/html
 
 RUN cd ~; \
+	echo "*/15 * * * * sudo -E -u www php /var/www/html/console.php ssl:update" >> /etc/crontabs/root; \
+	echo "32 2 * * * /root/ssl.renew.sh" >> /etc/crontabs/root; \
 	rm -f /root/run.d/10-cron.enable.sh; \
 	rm -f /etc/supervisor.d/php-fpm.ini; \
 	ln -s /data/letsencrypt/etc /etc/letsencrypt; \
