@@ -48,7 +48,7 @@ class AppBus extends BusApiRoute
 	{
 		$routes->addRoute([
 			"methods" => [ "GET", "POST" ],
-			"url" => "/api/bus/generate/",
+			"url" => "/api/bus/ssl/generate/",
 			"name" => "bus:ssl:generate",
 			"method" => [$this, "actionGenerate"],
 		]);
@@ -63,8 +63,19 @@ class AppBus extends BusApiRoute
 	{
 		$result = [];
 		
+		$data = $this->container->post("data");
+		$group_id = (int)(isset($data["group_id"]) ? $data["group_id"] : 0);
 		
-		$this->api_result->success( $files, "Ok" );
+		ob_start();
+		
+		\App\SSL::generate_ssl_group_certificate($group_id);
+		
+		$content = ob_get_contents();
+		ob_end_clean();
+		
+		$result["content"] = $content;
+		$result["group_id"] = $group_id;
+		$this->api_result->success( $result, "Ok" );
 	}
 	
 	
