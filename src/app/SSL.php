@@ -257,6 +257,7 @@ class SSL
 			" -out " . $puplic_key . " -sha256 -days 365" .
 			" -subj \"/C=EN/ST=TEST/L=TEST/O=TEST/CN=www.example.com\""
 		;
+		$cmd .= " 2>/dev/stdout";
 		
 		echo $cmd . "\n";
 		system($cmd);
