@@ -21,18 +21,20 @@ case "$1" in
 	
 	amd64)
 		echo "Build $IMAGE:$VERSION.$SUBVERSION-amd64"
+		export DOCKER_DEFAULT_PLATFORM=linux/amd64
 		docker build ./ -t $IMAGE:$VERSION.$SUBVERSION-amd64 \
 			--file Dockerfile --build-arg ARCH=amd64
 	;;
 	
 	arm64v8)
 		echo "Build $IMAGE:$VERSION.$SUBVERSION-arm64v8"
+		export DOCKER_DEFAULT_PLATFORM=linux/arm64/v8
 		docker build ./ -t $IMAGE:$VERSION.$SUBVERSION-arm64v8 \
 			--file Dockerfile --build-arg ARCH=arm64v8
 	;;
 	
 	manifest)
-		rm -rf ~/.docker/manifests/docker.io_virtual_space-*
+		rm -rf ~/.docker/manifests/docker.io_letsencrypt-*
 		
 		docker tag $IMAGE:$VERSION.$SUBVERSION-amd64 $IMAGE:$VERSION-amd64
 		docker tag $IMAGE:$VERSION.$SUBVERSION-arm64v8 $IMAGE:$VERSION-arm64v8
