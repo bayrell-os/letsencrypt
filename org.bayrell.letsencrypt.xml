@@ -15,7 +15,7 @@
 	<yaml>
 		<services>
 			<_var_app_name_>
-				<image>docker.io/bayrell/letsencrypt:0.4.2</image>
+				<image>docker.io/bayrell/letsencrypt:0.4.3</image>
 				<hostname>{{.Service.Name}}.{{.Task.ID}}.local</hostname>
 				<volumes>_var_app_name_:/data</volumes>
 				<environment>
