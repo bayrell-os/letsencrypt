@@ -37,7 +37,6 @@ class SSL
 	 */
 	static function generate_ssl_group_certificate($group_id)
 	{
-		$email = env("EMAIL");
 		$is_fake = env("GENERATE_FAKE_CERTIFICATE");
 		
 		$res = \TinyPHP\Bus::call
@@ -258,10 +257,13 @@ class SSL
 			" -subj \"/C=EN/ST=TEST/L=TEST/O=TEST/CN=www.example.com\""
 		;
 		$cmd .= " >" . $path_res_file . " 2>" . $path_res_file;
-		//echo $cmd;
+		echo $cmd;
 		
 		$date = date("Y-m-d H:i:s", time());
 		system($cmd);
+		system("echo '' >> " . $path_res_file);
+		system("echo '" . $cmd . "' >> " . $path_res_file);
+		system("echo '' >> " . $path_res_file);
 		system("echo 'End grp" . $group_id . " " . $date . "' >> " . $path_res_file);
 	}
 	
@@ -272,6 +274,9 @@ class SSL
 	 */
 	static function letsencrypt_generate_certificate($group_id, $domains)
 	{
+		/* Email */
+		$email = env("EMAIL");
+		
 		/* Domains string */
 		$domains = implode(" -d ", $domains);
 		
@@ -288,10 +293,13 @@ class SSL
 			" --webroot --webroot-path=/var/www/letsencrypt" .
 			" -d " . $domains;
 		$cmd .= " >" . $path_res_file . " 2>" . $path_res_file;
-		//echo $cmd . "\n";
+		echo $cmd . "\n";
 		
 		$date = date("Y-m-d H:i:s", time());
 		system($cmd);
+		system("echo '' >> " . $path_res_file);
+		system("echo '" . $cmd . "' >> " . $path_res_file);
+		system("echo '' >> " . $path_res_file);
 		system("echo 'End grp" . $group_id . " " . $date . "' >> " . $path_res_file);
 	}
 }

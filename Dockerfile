@@ -13,6 +13,7 @@ ADD src /var/www/html
 RUN cd ~; \
 	echo "*/15 * * * * sudo -E -u www php /var/www/html/console.php ssl:update" >> /etc/crontabs/root; \
 	echo "32 2 * * * /root/ssl.renew.sh" >> /etc/crontabs/root; \
+	echo "*/5 * * * * chown -R www:www /data/letsencrypt/log" >> /etc/crontabs/root; \
 	rm -f /root/run.d/10-cron.enable.sh; \
 	ln -s /data/letsencrypt/etc /etc/letsencrypt; \
 	ln -s /data/letsencrypt/lib /var/lib/letsencrypt; \
