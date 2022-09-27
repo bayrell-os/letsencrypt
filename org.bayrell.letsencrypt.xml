@@ -41,6 +41,7 @@
 	</variables>
 	<modificators>
 		<li>org.bayrell.modificator.cloud_os</li>
+		<li>org.bayrell.modificator.cloud_key</li>
 		<li>org.bayrell.modificator.deploy_hostname</li>
 	</modificators>
 	<patch>

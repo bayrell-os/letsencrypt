@@ -52,6 +52,12 @@ class AppBus extends BusApiRoute
 			"name" => "bus:ssl:generate",
 			"method" => [$this, "actionGenerate"],
 		]);
+		$routes->addRoute([
+			"methods" => [ "GET", "POST" ],
+			"url" => "/api/bus/ssl/refresh/",
+			"name" => "bus:ssl:refresh",
+			"method" => [$this, "actionRefresh"],
+		]);
 	}
 	
 	
@@ -66,17 +72,39 @@ class AppBus extends BusApiRoute
 		$data = $this->container->post("data");
 		$group_id = (int)(isset($data["group_id"]) ? $data["group_id"] : 0);
 		
-		ob_start();
-		
 		\App\SSL::generate_ssl_group_certificate($group_id);
 		
-		$content = ob_get_contents();
-		ob_end_clean();
+		$result["group_id"] = $group_id;
+		$this->api_result->success
+		(
+			$result,
+			"Run generate SSL for grp" . $group_id . ". Please refresh"
+		);
+	}
+	
+	
+	
+	/**
+	 * Returns result generate ssl certificate
+	 */
+	function actionRefresh()
+	{
+		$result = [];
+		
+		$data = $this->container->post("data");
+		$group_id = (int)(isset($data["group_id"]) ? $data["group_id"] : 0);
+		
+		$content = "";
+		$path_res = "/data/letsencrypt/etc/result";
+		$path_res_file = $path_res . "/grp" . $group_id . ".txt";
+		if (file_exists($path_res_file))
+		{
+			$content = file_get_contents($path_res_file);
+		}
 		
 		$result["content"] = $content;
 		$result["group_id"] = $group_id;
 		$this->api_result->success( $result, "Ok" );
 	}
-	
 	
 }

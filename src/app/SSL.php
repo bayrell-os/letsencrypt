@@ -70,28 +70,22 @@ class SSL
 			return false;
 		}
 		
-		/* Generate ssl certificate for current group */
-		if ($is_fake == "1")
+		$app = app();
+		$app->add_shutdown(function() use ($group_id, $domains, $is_fake)
 		{
-			static::fake_generate_certificate($group_id, $domains);
-		}
-		else
-		{
-			/* Domains string */
-			$domains = implode(" -d ", $domains);
+			/* Generate ssl certificate for current group */
+			if ($is_fake == "1")
+			{
+				static::fake_generate_certificate($group_id, $domains);
+			}
+			else
+			{
+				static::letsencrypt_generate_certificate($group_id, $domains);
+			}
 			
-			/* Certbot command */
-			$cmd = "certbot certonly --non-interactive --agree-tos --email " . $email .
-				" --cert-name grp" . $group_id .
-				" --webroot --webroot-path=/var/www/letsencrypt" .
-				" -d " . $domains;
-			
-			echo $cmd . "\n";
-			system($cmd);
-		}
-		
-		/* Update all ssl certificates */
-		static::update_ssl_certificates();
+			/* Update all ssl certificates */
+			static::update_ssl_certificates();
+		});
 		
 		return true;
 	}
@@ -243,10 +237,16 @@ class SSL
 	static function fake_generate_certificate($group_id, $domains)
 	{
 		$path = "/data/letsencrypt/etc/live/grp" . $group_id;
+		$path_res = "/data/letsencrypt/etc/result";
+		$path_res_file = $path_res . "/grp" . $group_id . ".txt";
 		
 		if (!file_exists($path))
 		{
 			mkdir($path, 0775, true);
+		}
+		if (!file_exists($path_res))
+		{
+			mkdir($path_res, 0775, true);
 		}
 		
 		$private_key = $path . "/privkey.pem";
@@ -257,10 +257,41 @@ class SSL
 			" -out " . $puplic_key . " -sha256 -days 365" .
 			" -subj \"/C=EN/ST=TEST/L=TEST/O=TEST/CN=www.example.com\""
 		;
-		$cmd .= " 2>/dev/stdout";
+		$cmd .= " >" . $path_res_file . " 2>" . $path_res_file;
+		//echo $cmd;
 		
-		echo $cmd . "\n";
+		$date = date("Y-m-d H:i:s", time());
 		system($cmd);
+		system("echo 'End grp" . $group_id . " " . $date . "' >> " . $path_res_file);
 	}
 	
+	
+	
+	/**
+	 * Let's Encrypt generate certifiate
+	 */
+	static function letsencrypt_generate_certificate($group_id, $domains)
+	{
+		/* Domains string */
+		$domains = implode(" -d ", $domains);
+		
+		$path_res = "/data/letsencrypt/etc/result";
+		$path_res_file = $path_res . "/grp" . $group_id . ".txt";
+		if (!file_exists($path_res))
+		{
+			mkdir($path_res, 0775, true);
+		}
+		
+		/* Certbot command */
+		$cmd = "certbot certonly --non-interactive --agree-tos --email " . $email .
+			" --cert-name grp" . $group_id .
+			" --webroot --webroot-path=/var/www/letsencrypt" .
+			" -d " . $domains;
+		$cmd .= " >" . $path_res_file . " 2>" . $path_res_file;
+		//echo $cmd . "\n";
+		
+		$date = date("Y-m-d H:i:s", time());
+		system($cmd);
+		system("echo 'End grp" . $group_id . " " . $date . "' >> " . $path_res_file);
+	}
 }
